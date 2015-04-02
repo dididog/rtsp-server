@@ -13,9 +13,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-int ports[] = {6660, 6662, 6664, 6666, 6668, 6670};
-//int ports[]={6666};
+//int ports[] = {6660, 6662, 6664, 6666, 6668, 6670};
+int ports[]={6666};
 LIST_HEAD(rtp_list);
+LIST_HEAD(queue);
 
 int init_rtp_list()
 {
@@ -77,7 +78,7 @@ int rtp_callback(event_t * ev)
     rtp_session_send_packet(rtp);
 
     /* 重复插入事件 */
-    event_queue_push_back(ev, 20000);
+    event_queue_push_back(&queue, *ev, 10000);
 
     return 0;
 }
@@ -87,18 +88,16 @@ int main(int argc, char ** argv)
     struct list_head * pos;
     rtp_session_t * rtp = NULL;
 
-    event_queue_run();
+    event_queue_run(&queue);
     init_rtp_list();
     list_for_each(pos, &rtp_list) {
         rtp = list_entry(pos, rtp_session_t, list);
         event_t ev;
-        struct timeval tv;
-
 
         EVENT_INIT(&ev);
         ev.opaque = rtp;
         ev.fire = rtp_callback;
-        event_queue_push_back(&ev, 0);
+        event_queue_push_back(&queue, ev, 0);
     }
 
     while(1) {

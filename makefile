@@ -4,7 +4,7 @@ OBJ=rtp.o event_queue.o
 OBJ+=test_event_queue.o
 LDFLAGS=-lpthread
 CFLAGS=-g -Wall
-CFLAGS+=-D DEBUG
+#CFLAGS+=-D DEBUG
 
 all:$(OBJ)
 	gcc -o $(TARGET) $(OBJ) $(LDFLAGS)

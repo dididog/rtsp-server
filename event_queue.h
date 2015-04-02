@@ -11,21 +11,25 @@ struct _event {
     void * (*fire) (event_t * ev);
     void * (*timeout) (event_t * ev);
 
-    struct list_head list;
+//    struct list_head list;
 };
 
-extern struct list_head g_event_list;
+typedef struct _event_queue event_queue_t;
+struct _event_queue {
+    event_t ev;
+    struct list_head list;
+};
 
 typedef void * (*event_callback) (event_t * ev);
 
 void EVENT_INIT(event_t * ev);
-int event_queue_run();
-int event_queue_stop();
-int event_queue_push_back(event_t * ev, long int delay);
-void event_queue_delete(event_t * ev);
-void event_queue_release();
+int  event_queue_run      (struct list_head * queue);
+int  event_queue_stop     (struct list_head * queue);
+int  event_queue_push_back(struct list_head * queue, event_t ev, long int delay);
+void event_queue_delete   (struct list_head * queue, event_queue_t * item);
+void event_queue_release  (struct list_head * queue);
 
-void * DEFAULT_EVENT_CALLBACK(event_t * ev);
-void * DEFAULT_TIMEOUT(event_t * ev);
+void * DEFAULT_EVENT_CALLBACK(struct list_head * queue, event_t * ev);
+void * DEFAULT_TIMEOUT       (struct list_head * queue, event_t * ev);
 
 #endif  /* _EVENT_QUEUE_H_ */
