@@ -9,11 +9,11 @@
 
 #define MTU 1500
 
-#ifdef DEBUG
-#define DEBUG(fmt, ...) fprintf(stdout, fmt, ##__VA_ARGS__)
-#else
-#define DEBUG(fmt, ...)
-#endif
+//#ifdef DEBUG
+//#define DEBUG(fmt, ...) fprintf(stdout, fmt, ##__VA_ARGS__)
+//#else
+//#define DEBUG(fmt, ...)
+//#endif
 
 typedef struct _rtp_header {
     unsigned char cc:4;
@@ -37,29 +37,19 @@ typedef struct _rtp_session {
     float packet_rate; //must set manually
     rtp_header_t head;
     int sock_fd;
-    FILE * src_fp;
-//    int src_fd;
+
+    void * src;
+    size_t src_len;
+
     struct sockaddr_in destaddr; //must set manually
 
     int (*get_packet)(void * data, size_t len, void * src, size_t max_src_len);
+    int state;
 
     struct list_head list;
 } rtp_session_t;
 
-//static inline void RTP_HEAD_INIT(rtp_header_t * h)
-//{
-//    h->v = 2;
-//    h->p = 0;
-//    h->x = 0;
-//    h->cc = 0;
-//    h->m = 0;
-//    h->sequence = 0;
-//}
-
 typedef int (*GET_PACKET_CALLBACK)(void *data, size_t len, void * src, size_t src_len);
-
-//void rtp_header_init(rtp_header_t * h);
-//void rtp_header_payload_type(rtp_header_t * h, int pt);
 
 void rtp_session_set_payload_type(rtp_session_t * rtp, int pt);
 void rtp_session_seq_increase(rtp_session_t * item);

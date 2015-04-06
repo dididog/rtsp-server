@@ -47,7 +47,7 @@ int init_rtp_list()
     return i - 1;
 }
 
-int rtp_callback(event_t * ev)
+int rtp_ts_file_callback(event_t * ev)
 {
     rtp_session_t * rtp = (rtp_session_t *)ev->opaque;
     int n = 0;
