@@ -47,7 +47,7 @@ int init_rtp_list()
     return i - 1;
 }
 
-int rtp_callback(event_t * ev)
+int rtp_ts_file_callback(event_t * ev)
 {
     rtp_session_t * rtp = (rtp_session_t *)ev->opaque;
     int n = 0;
@@ -61,8 +61,8 @@ int rtp_callback(event_t * ev)
         struct timeval tv;
 
         gettimeofday(&tv, NULL);
-        DEBUG("tv.sec = %ld    \tv.usec = %ld\n", tv.tv_sec, tv.tv_usec);
-        DEBUG("expire.sec = %ld\texpire.usec=%ld\n", ev->expire_time.tv_sec,
+        LOG("tv.sec = %ld    \tv.usec = %ld\n", tv.tv_sec, tv.tv_usec);
+        LOG("expire.sec = %ld\texpire.usec=%ld\n", ev->expire_time.tv_sec,
               ev->expire_time.tv_usec);
     }
     count++;

@@ -1,10 +1,8 @@
-#TARGET=rtp_server
-TARGET=test_event_queue
-OBJ=rtp.o event_queue.o
-OBJ+=test_event_queue.o
+TARGET=rtsp_server
+OBJ=rtp.o event_queue.o rtsp.o rtsp_method.o rtsp_session.o main.o
 LDFLAGS=-lpthread
 CFLAGS=-g -Wall
-#CFLAGS+=-D DEBUG
+CFLAGS+=-D DEBUG
 
 all:$(OBJ)
 	gcc -o $(TARGET) $(OBJ) $(LDFLAGS)
@@ -18,10 +16,20 @@ rtp.o:rtp.c rtp.h
 event_queue.o:event_queue.c
 	gcc -c $(CFLAGS) $^
 
-test_event_queue.o:test_event_queue.c
+rtsp.o:rtsp.c
 	gcc -c $(CFLAGS) $^
 
+rtsp_method.o:rtsp_method.c
+	gcc -c $(CFLAGS) $^
 
+rtsp_session.o:rtsp_session.c
+	gcc -c $(CFLAGS) $^
+
+main.o:main.c
+	gcc -c $(CFLAGS) $^
+
+test_event_queue.o:test_event_queue.c
+	gcc -c $(CFLAGS) $^
 
 clean:
 	rm -f $(OBJ)
