@@ -1,0 +1,5 @@
+v=0
+c=IN IP4 0.0.0.0
+s=MPEG Transport Stream, streamed by rtsp server
+m=video 9400 RTP/AVP 33
+a=rtpmap:33 MP2T/90000

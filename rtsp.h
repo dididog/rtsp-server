@@ -62,9 +62,9 @@
 #define RTSP_URL_SIZE     256
 
 #ifdef DEBUG
-#define DEBUG(fmt, ...) fprintf(stdout, fmt, ##__VA_ARGS__)
+#define LOG(fmt, ...) fprintf(stdout, fmt, ##__VA_ARGS__)
 #else
-#define DEBUG(fmt, ...)
+#define LOG(fmt, ...)
 #endif
 
 #include "list.h"
@@ -118,6 +118,8 @@ int rtsp_method_options (rtsp_buffer_t * rtsp);
 int rtsp_method_setup   (rtsp_buffer_t * rtsp);
 int rtsp_method_play    (rtsp_buffer_t * rtsp);
 int rtsp_method_teardown(rtsp_buffer_t * rtsp);
+int rtsp_method_describe(rtsp_buffer_t * rtsp);
+//int rtsp_method_descri
 
 
 /* RTSP session */
@@ -135,6 +137,6 @@ void rtsp_session_release(struct list_head * session_list);
 
 
 /* RTP Callback */
-int rtp_ts_file_callback(event_t * ev);
+void * rtp_ts_file_callback(event_t * ev);
 #endif /* _RTSP_H */
 

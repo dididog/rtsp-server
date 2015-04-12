@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <sys/ioctl.h>
 #include <netinet/in.h>
 
 #include "rtp.h"
@@ -24,6 +25,7 @@ int tcp_listen(int port)
 {
     int main_fd;
     int v = 1;
+    int on = 1;
     struct sockaddr_in s;
 
     main_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -37,6 +39,10 @@ int tcp_listen(int port)
     s.sin_port = htons(port);
 
     if (bind(main_fd, (struct sockaddr *)&s, sizeof(struct sockaddr_in))) {
+        return ERR_GENERIC;
+    }
+
+    if (ioctl(main_fd, FIONBIO, &on) < 0){
         return ERR_GENERIC;
     }
 
@@ -89,11 +95,14 @@ int rtsp_handler(struct list_head * rtsp_list)
                     close(item->fd);
                     list_del(&(item->list));
                     free(item);
+                    continue;
                 } else {
                     //recv success
                     item->in_size = ret;
                     item->in_buffer[item->in_size] = '\0';
                     if (rtsp_check_request(item) < 0) {
+                        LOG("request invalid\n");
+                        continue;
                     }
                     if (rtsp_state_machine(item, item->method) < 0) {
                     }
@@ -103,6 +112,7 @@ int rtsp_handler(struct list_head * rtsp_list)
             if (FD_ISSET(item->fd, &wset)) {
                 if (item->out_size > 0) {
                     ret = send(item->fd, item->out_buffer, item->out_size, 0);
+                    item->out_size = 0;
                 }
             }
         }
@@ -145,6 +155,7 @@ int main(int argc, char ** argv)
 
         /* handle established connections */
         rtsp_handler(&rtsp_buffer_list);
+        usleep(1);
     }
 
     event_queue_stop(&g_event_queue);

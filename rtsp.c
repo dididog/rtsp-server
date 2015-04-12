@@ -6,7 +6,7 @@
 #include "list.h"
 #include "rtsp.h"
 #include "rtp.h"
-#include "rtsp_method.h"
+//#include "rtsp_method.h"
 
 extern struct list_head g_event_queue;
 
@@ -16,16 +16,16 @@ int rtsp_get_method(const char * name)
         int id;
         const char * name;
     } methods[] = {
-//    { RTSP_ID_DESCRIBE,       "DESCRIBE"       },
 //    { RTSP_ID_ANNOUNCE,       "ANNOUNCE"       },
 //    { RTSP_ID_GET_PARAMETERS, "GET_PARAMETERS" },
 //    { RTSP_ID_RECORD,         "RECORD"         },
 //    { RTSP_ID_REDIRECT,       "REDIRECT"       },
 //    { RTSP_ID_SET_PARAMETER,  "SET_PARAMETER"  },
+//      { RTSP_ID_PAUSE,          "PAUSE"          },
+            { RTSP_ID_DESCRIBE,       "DESCRIBE"       },
             { RTSP_ID_OPTIONS,        "OPTIONS"        },
             { RTSP_ID_SETUP,          "SETUP"          },
             { RTSP_ID_PLAY,           "PLAY"           },
-            { RTSP_ID_PAUSE,          "PAUSE"          },
             { RTSP_ID_TEARDOWN,       "TEARDOWN"       },
             { -1,                      NULL            },
     };
@@ -132,13 +132,14 @@ int rtsp_check_request(rtsp_buffer_t * rtsp)
     unsigned short port;
     char server[128];
 
+    LOG("%s\n", rtsp->in_buffer);
     /* 检查是否有 METHOD URL VERSION HDR  */
     if ((ret = sscanf(rtsp->in_buffer, " %31s %255s %31s\n%15s",
                       method, url, ver, hdr)) != 4) {
-        DEBUG("%s ", method);
-        DEBUG("%s ", url);
-        DEBUG("%s ", ver);
-        DEBUG("%s ", hdr);
+        LOG("%s ", method);
+        LOG("%s ", url);
+        LOG("%s ", ver);
+        LOG("%s ", hdr);
         return ERR_GENERIC;
     }
 
@@ -175,7 +176,7 @@ int rtsp_random()
 int rtsp_fill_out_buffer(rtsp_buffer_t * rtsp, const char * data, int size)
 {
     if (rtsp->out_size + size >= RTSP_BUFFER_SIZE + RTSP_DESCR_SIZE) {
-        DEBUG("RTSP out buffer is too small");
+        LOG("RTSP out buffer is too small");
         return ERR_GENERIC;
     }
 
@@ -218,7 +219,6 @@ int rtsp_parse_url(const char * url, char * server, size_t server_len,
         unsigned short *  port, char * filename, size_t filename_len)
 {
     char buffer[256] = {0};
-
     char _server[256];
     int  _server_len = 256;
     char _filename[256];
@@ -226,31 +226,28 @@ int rtsp_parse_url(const char * url, char * server, size_t server_len,
     unsigned short _port = 0;
 
     strcpy(buffer, url);
+    //LOG("%s\n", url);
     if(strncmp(buffer, "rtsp://", 7) == 0) {
         char * token = 0;
-        int has_port = 0;
+        int has_port = 1;
+        int has_filename = 1;
         char sub_str[256] = {0};
         char * p = NULL;
 
         strcpy(sub_str, &buffer[7]);
-        if((p = strchr(sub_str, '/')) == NULL) {
-            fprintf(stderr, "server:port not found\n");
-            return ERR_GENERIC;
-        } else {
-            char server_str[256] = {0};
-            char * t = NULL;
+        if ((p = strchr(sub_str, '/')) == NULL) {
+            has_filename = 0;
+        }
 
-            strncpy(server_str, sub_str, p - sub_str);
-            if ((t = strchr(server_str, ':')) != NULL) {
-                has_port = 1;
-            }
+        if ((p = strchr(sub_str, ':')) == NULL) {
+            has_port = 0;
         }
 
         token = strtok(sub_str, " :/\t\n");
         if(token) {
             strncpy(_server, token, _server_len);
             if (_server[_server_len - 1]) {
-                fprintf(stderr, "server buffer is too small\n");
+                LOG("server buffer is too small\n");
                 return ERR_GENERIC;
             }
 
@@ -269,17 +266,19 @@ int rtsp_parse_url(const char * url, char * server, size_t server_len,
                 _port = (unsigned short)RTSP_DEFAULT_PORT;
             }
 
-            token = strtok(NULL, " ");
-            if (token) {
-                strncpy(_filename, token, _filename_len);
-                if(_filename[_filename_len - 1]) {
-                    fprintf(stderr, "filename buffer is too small\n");
-                    return ERR_GENERIC;
+            if (has_filename) {
+                token = strtok(NULL, " ");
+                if (token) {
+                    strncpy(_filename, token, _filename_len);
+                    if(_filename[_filename_len - 1]) {
+                        LOG( "filename buffer is too small\n");
+                        return ERR_GENERIC;
+                    }
                 }
             } else {
                 _filename[0] = '\0';
-                return ERR_GENERIC;
             }
+            
         }
     } else {
         return ERR_GENERIC;
@@ -290,6 +289,13 @@ int rtsp_parse_url(const char * url, char * server, size_t server_len,
     }
 
     if (filename) {
+        char * p = &_filename[strlen(_filename) - 1];
+
+        //踢除文件名最有一个'/'符号，如/media/test.ts/变为/media/test.ts
+        if (*p == '/') {
+            *p = '\0';
+        }
+
         strncpy(filename, _filename, filename_len);
     }
 
@@ -347,6 +353,9 @@ int rtsp_state_machine(rtsp_buffer_t * rtsp, int method_id)
                         case RTSP_ID_TEARDOWN:
                             rtsp_method_teardown(rtsp);
                             break;
+                        case RTSP_ID_DESCRIBE:
+                            rtsp_method_describe(rtsp);
+                            break;
                         case RTSP_ID_RECORD:
                         case RTSP_ID_REDIRECT:
                         case RTSP_ID_ANNOUNCE:
@@ -366,6 +375,9 @@ int rtsp_state_machine(rtsp_buffer_t * rtsp, int method_id)
                     case RTSP_ID_PLAY:
                         rtsp_method_play(rtsp);
                         session->state = STATE_PLAY;
+                        break;
+                    case RTSP_ID_DESCRIBE:
+                        rtsp_method_describe(rtsp);
                         break;
                     case RTSP_ID_SETUP:
                         rtsp_method_setup(rtsp);
@@ -389,6 +401,9 @@ int rtsp_state_machine(rtsp_buffer_t * rtsp, int method_id)
                 switch(method_id) {
                     case RTSP_ID_OPTIONS:
                         rtsp_method_options(rtsp);
+                        break;
+                    case RTSP_ID_DESCRIBE:
+                        rtsp_method_describe(rtsp);
                         break;
                     case RTSP_ID_PLAY:
                         rtsp_method_play(rtsp);
@@ -423,16 +438,20 @@ int rtsp_state_machine(rtsp_buffer_t * rtsp, int method_id)
                 break;
             case RTSP_ID_SETUP:
                 rtsp_method_setup(rtsp);
+                break;
+            case RTSP_ID_DESCRIBE:
+                rtsp_method_describe(rtsp);
+                break;
             default:
                 rtsp_send_reply(501, NULL, rtsp);
                 break;
         }
     }
 
-    return ERR_GENERIC;
+    return ERR_NOERROR;
 }
 
-int rtp_ts_file_callback(event_t * ev)
+void * rtp_ts_file_callback(event_t * ev)
 {
     rtp_session_t * rtp = (rtp_session_t *)ev->opaque;
     int n = 0;
@@ -440,17 +459,17 @@ int rtp_ts_file_callback(event_t * ev)
     n = rtp->get_packet(rtp->data, MTU-sizeof(rtp_header_t),
                             rtp->src, 0);
 #ifdef DEBUG
-    static int count = 0;
-
-    {
-        struct timeval tv;
-
-        gettimeofday(&tv, NULL);
-        DEBUG("tv.sec = %ld    \tv.usec = %ld\n", tv.tv_sec, tv.tv_usec);
-        DEBUG("expire.sec = %ld\texpire.usec=%ld\n", ev->expire_time.tv_sec,
-              ev->expire_time.tv_usec);
-    }
-    count++;
+//    static int count = 0;
+//
+//    {
+//        struct timeval tv;
+//
+//        gettimeofday(&tv, NULL);
+//        LOG("tv.sec = %ld    \tv.usec = %ld\n", tv.tv_sec, tv.tv_usec);
+//        LOG("expire.sec = %ld\texpire.usec=%ld\n", ev->expire_time.tv_sec,
+//              ev->expire_time.tv_usec);
+//    }
+//    count++;
 #endif
 
     rtp->out_len = n;
@@ -460,10 +479,12 @@ int rtp_ts_file_callback(event_t * ev)
     }
     rtp_session_seq_increase(rtp);
     rtp_session_update_timestamp(rtp);
-    rtp_session_send_packet(rtp);
+    if (rtp_session_send_packet(rtp) < 0) {
+        return (void*)-1;
+    }
 
     /* 重复插入事件 */
-    event_queue_push_back(&g_event_queue, *ev, 10000);
+    event_queue_push_back(&g_event_queue, *ev, 3000);
 
-    return 0;
+    return (void*)0;
 }

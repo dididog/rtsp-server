@@ -1,4 +1,7 @@
 #include "rtp.h"
+#include "rtsp.h"
+#include <string.h>
+#include <errno.h>
 #include <sys/time.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -90,6 +93,9 @@ int rtp_session_send_packet(rtp_session_t * rtp)
         ret = sendto(rtp->sock_fd, rtp->out_buff, rtp->out_len, 0,
                      (const struct sockaddr *)&(rtp->destaddr),
                      sizeof(rtp->destaddr));
+        if (ret < 0) {
+            LOG("Send RTP Packet failed:%s\n", strerror(errno));
+        }
     }
 
     return ret;
